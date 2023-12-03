@@ -70,6 +70,8 @@ const vertexShaderSource = `
   uniform float uRotationMoonOrbit; // Rotation angle around the Moon's orbit in radians
   uniform float uDistanceEarth; // Distance from the Sun to the Earth
   uniform float uDistanceMoon; // Distance from the Earth to the Moon
+  uniform float uRotationEarthAxis; // Rotation angle around the Earth's own axis in radians
+  uniform float uRotationMoonAxis; // Rotation angle around the Moon's own axis in radians
 
   void main() {
     // Calculate the Earth's position
@@ -83,6 +85,14 @@ const vertexShaderSource = `
 
     // Rotate the Earth around the Sun
     vec2 rotatedPositionEarth = earthPosition + (aPosition - earthPosition) * mat2(cos(uRotationEarth), -sin(uRotationEarth), sin(uRotationEarth), cos(uRotationEarth));
+    
+    // Rotate the Earth around its own axis
+    vec2 earthCenterPosition = vec2(uDistanceEarth * cos(uRotationEarth), uDistanceEarth * sin(uRotationEarth));
+    vec2 rotatedPositionEarthSelf = earthCenterPosition + (aPosition - earthCenterPosition) * mat2(cos(uRotationEarthAxis), -sin(uRotationEarthAxis), sin(uRotationEarthAxis), cos(uRotationEarthAxis));
+    
+    // Rotate the Moon around its own axis
+    vec2 moonCenterPosition = moonOrbitPosition + vec2(uDistanceMoon * cos(uRotationMoonOrbit), uDistanceMoon * sin(uRotationMoonOrbit));
+    vec2 rotatedPositionMoonSelf = moonCenterPosition + (aPosition - moonCenterPosition) * mat2(cos(uRotationMoonAxis), -sin(uRotationMoonAxis), sin(uRotationMoonAxis), cos(uRotationMoonAxis));
 
     gl_Position = vec4(rotatedPositionMoon, 0.0, 1.0);
   }
@@ -163,19 +173,25 @@ function draw() {
     // Rotation for the Moon (rotate around the Earth)
     const rotationAngleMoon = rotationAngleEarth;
 
+    // Rotation for the Earth's own axis
+    const rotationAngleEarthAxis = performance.now() * 0.001;
+
+    // Rotation for the Moon's own axis
+    const rotationAngleMoonAxis = performance.now() * 0.001;
+
     // Draw the Sun
     drawStar(shaderProgramSun, vertexBufferSun, rotationAngleSun);
 
     // Draw the Earth
-    drawStar(shaderProgramEarth, vertexBufferEarth, rotationAngleEarth, 0.0);
+    drawStar(shaderProgramEarth, vertexBufferEarth, rotationAngleEarth, 0.0, rotationAngleEarthAxis);
 
     // Draw the Moon
-    drawStar(shaderProgramMoon, vertexBufferMoon, rotationAngleMoon, distanceFromEarth);
+    drawStar(shaderProgramMoon, vertexBufferMoon, rotationAngleMoon, distanceFromEarth, rotationAngleMoonAxis);
 
     requestAnimationFrame(draw);
 }
 
-function drawStar(program, buffer, rotationAngle, distance = 0.0) {
+function drawStar(program, buffer, rotationAngle, distance = 0.0, rotationAngleAxis = 0.0) {
     gl.useProgram(program);
 
     const aPosition = gl.getAttribLocation(program, 'aPosition');
@@ -188,12 +204,16 @@ function drawStar(program, buffer, rotationAngle, distance = 0.0) {
     const uRotationMoonOrbit = gl.getUniformLocation(program, 'uRotationMoonOrbit');
     const uDistanceEarth = gl.getUniformLocation(program, 'uDistanceEarth');
     const uDistanceMoon = gl.getUniformLocation(program, 'uDistanceMoon');
+    const uRotationEarthAxis = gl.getUniformLocation(program, 'uRotationEarthAxis');
+    const uRotationMoonAxis = gl.getUniformLocation(program, 'uRotationMoonAxis');
 
     gl.uniform1f(uRotationSun, rotationAngle);
     gl.uniform1f(uRotationEarth, rotationAngle);
     gl.uniform1f(uRotationMoonOrbit, rotationAngle);
     gl.uniform1f(uDistanceEarth, 0.0);
     gl.uniform1f(uDistanceMoon, distance);
+    gl.uniform1f(uRotationEarthAxis, rotationAngleAxis);
+    gl.uniform1f(uRotationMoonAxis, rotationAngleAxis);
 
     gl.drawArrays(gl.TRIANGLE_FAN, 0, verticesSun.length / 2);
 }
