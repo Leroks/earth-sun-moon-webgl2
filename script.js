@@ -4,9 +4,8 @@ const gl = canvas.getContext('webgl2');
 // Set canvas background color to black
 gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
-// Adjust viewport and aspect ratio
+// Adjust viewport to the canvas size
 gl.viewport(0, 0, canvas.width, canvas.height);
-const aspectRatio = canvas.width / canvas.height;
 
 const outerRadiusSun = 0.1; // Adjusted radius for the Sun
 const innerRadiusSun = 0.04; // Adjusted radius for the Sun
