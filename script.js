@@ -165,7 +165,7 @@ function draw() {
     const rotationAngleEarth = performance.now() * 0.0005;
 
     // Rotation for the Moon (rotate around the Earth)
-    const rotationAngleMoon = performance.now() * 0.001;
+    const rotationAngleMoon = rotationAngleEarth;
 
     // Draw the Sun
     drawStar(shaderProgramSun, vertexBufferSun, rotationAngleSun);
