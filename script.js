@@ -8,16 +8,17 @@ const innerRadius = 0.2;
 
 const vertices = [];
 
-for (let i = 0; i < 11; i++) {
-    const outerX = outerRadius * Math.cos((2 * Math.PI * i) / 10);
-    const outerY = outerRadius * Math.sin((2 * Math.PI * i) / 10);
+// Center of the star
+vertices.push(0.0, 0.0);
 
-    vertices.push(outerX, outerY);
+for (let i = 0; i <= 20; i++) {
+    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+    const theta = (i / 10) * Math.PI; // Angle for each point
 
-    const innerX = innerRadius * Math.cos((2 * Math.PI * (i + 0.5)) / 10);
-    const innerY = innerRadius * Math.sin((2 * Math.PI * (i + 0.5)) / 10);
+    const x = radius * Math.cos(theta);
+    const y = radius * Math.sin(theta);
 
-    vertices.push(innerX, innerY);
+    vertices.push(x, y);
 }
 
 
@@ -62,4 +63,4 @@ gl.enableVertexAttribArray(aPosition);
 
 gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear the canvas with black color
 gl.clear(gl.COLOR_BUFFER_BIT);
-gl.drawArrays(gl.LINE_STRIP, 0, vertices.length / 2);
+gl.drawArrays(gl.TRIANGLE_FAN, 0, vertices.length / 2);
