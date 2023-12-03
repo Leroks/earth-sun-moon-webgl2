@@ -67,32 +67,28 @@ const vertexShaderSource = `
   attribute vec2 aPosition;
   uniform float uRotationSun; // Rotation angle around the Sun in radians
   uniform float uRotationEarth; // Rotation angle around the Earth in radians
-  uniform float uRotationMoon; // Rotation angle around the Moon in radians
+  uniform float uRotationMoonOrbit; // Rotation angle around the Moon's orbit in radians
   uniform float uDistanceEarth; // Distance from the Sun to the Earth
   uniform float uDistanceMoon; // Distance from the Earth to the Moon
+
   void main() {
-    // Rotation matrix for the Sun
-    mat2 rotationMatrixSun = mat2(cos(uRotationSun), -sin(uRotationSun), sin(uRotationSun), cos(uRotationSun));
+    // Calculate the Earth's position
+    vec2 earthPosition = vec2(uDistanceEarth * cos(uRotationEarth), uDistanceEarth * sin(uRotationEarth));
 
-    // Rotation matrix for the Earth
-    mat2 rotationMatrixEarth = mat2(cos(uRotationEarth), -sin(uRotationEarth), sin(uRotationEarth), cos(uRotationEarth));
+    // Calculate the Moon's orbit position around the Earth
+    vec2 moonOrbitPosition = earthPosition + vec2(uDistanceMoon * cos(uRotationMoonOrbit), uDistanceMoon * sin(uRotationMoonOrbit));
 
-    // Rotation matrix for the Moon
-    mat2 rotationMatrixMoon = mat2(cos(uRotationMoon), -sin(uRotationMoon), sin(uRotationMoon), cos(uRotationMoon));
+    // Rotate the Moon around its orbit
+    vec2 rotatedPositionMoon = moonOrbitPosition + (aPosition - moonOrbitPosition) * mat2(cos(uRotationMoonOrbit), -sin(uRotationMoonOrbit), sin(uRotationMoonOrbit), cos(uRotationMoonOrbit));
 
-    // Apply rotations and translations
-    vec2 rotatedPositionSun = aPosition + vec2(uDistanceEarth, 0.0);
-    vec2 rotatedPositionEarth = rotationMatrixSun * (aPosition + vec2(uDistanceEarth, 0.0));
-
-    // Rotate the Moon around the Earth
-    vec2 rotatedPositionMoonAroundEarth = rotationMatrixEarth * (aPosition + vec2(uDistanceEarth + uDistanceMoon, 0.0));
-
-    // Translate the Moon to follow the Earth's rotation
-    vec2 rotatedPositionMoon = rotatedPositionEarth + rotatedPositionMoonAroundEarth;
+    // Rotate the Earth around the Sun
+    vec2 rotatedPositionEarth = earthPosition + (aPosition - earthPosition) * mat2(cos(uRotationEarth), -sin(uRotationEarth), sin(uRotationEarth), cos(uRotationEarth));
 
     gl_Position = vec4(rotatedPositionMoon, 0.0, 1.0);
   }
 `;
+
+
 
 const fragmentShaderSource = `
   void main() {
@@ -189,13 +185,13 @@ function drawStar(program, buffer, rotationAngle, distance = 0.0) {
 
     const uRotationSun = gl.getUniformLocation(program, 'uRotationSun');
     const uRotationEarth = gl.getUniformLocation(program, 'uRotationEarth');
-    const uRotationMoon = gl.getUniformLocation(program, 'uRotationMoon');
+    const uRotationMoonOrbit = gl.getUniformLocation(program, 'uRotationMoonOrbit');
     const uDistanceEarth = gl.getUniformLocation(program, 'uDistanceEarth');
     const uDistanceMoon = gl.getUniformLocation(program, 'uDistanceMoon');
 
     gl.uniform1f(uRotationSun, rotationAngle);
     gl.uniform1f(uRotationEarth, rotationAngle);
-    gl.uniform1f(uRotationMoon, rotationAngle);
+    gl.uniform1f(uRotationMoonOrbit, rotationAngle);
     gl.uniform1f(uDistanceEarth, 0.0);
     gl.uniform1f(uDistanceMoon, distance);
 
