@@ -8,8 +8,8 @@ gl.clearColor(0.0, 0.0, 0.0, 1.0);
 gl.viewport(0, 0, canvas.width, canvas.height);
 const aspectRatio = canvas.width / canvas.height;
 
-const outerRadiusSun = 0.5;
-const innerRadiusSun = 0.2;
+const outerRadiusSun = 0.1; // Adjusted radius for the Sun
+const innerRadiusSun = 0.04; // Adjusted radius for the Sun
 
 const verticesSun = [];
 // Center of the sun
@@ -25,10 +25,10 @@ for (let i = 0; i <= 20; i++) {
     verticesSun.push(x, y);
 }
 
-const outerRadiusEarth = 0.3;
-const innerRadiusEarth = 0.1;
+const outerRadiusEarth = 0.06; // Adjusted radius for the Earth
+const innerRadiusEarth = 0.02; // Adjusted radius for the Earth
 
-const distanceFromSun = 1.0; // Adjust the distance of Earth from the Sun
+const distanceFromSun = 0.4; // Adjust the distance of Earth from the Sun
 
 const verticesEarth = [];
 // Center of the Earth (position it away from the Sun)
@@ -44,10 +44,10 @@ for (let i = 0; i <= 20; i++) {
     verticesEarth.push(x, y);
 }
 
-const outerRadiusMoon = 0.1;
-const innerRadiusMoon = 0.05;
+const outerRadiusMoon = 0.02; // Adjusted radius for the Moon
+const innerRadiusMoon = 0.01; // Adjusted radius for the Moon
 
-const distanceFromEarth = 0.5; // Adjust the distance of the Moon from the Earth
+const distanceFromEarth = 0.2; // Adjust the distance of the Moon from the Earth
 
 const verticesMoon = [];
 // Center of the Moon (position it away from the Earth)
@@ -79,11 +79,16 @@ const vertexShaderSource = `
 
     // Rotation matrix for the Moon
     mat2 rotationMatrixMoon = mat2(cos(uRotationMoon), -sin(uRotationMoon), sin(uRotationMoon), cos(uRotationMoon));
-    
+
     // Apply rotations and translations
     vec2 rotatedPositionSun = aPosition + vec2(uDistanceEarth, 0.0);
     vec2 rotatedPositionEarth = rotationMatrixSun * (aPosition + vec2(uDistanceEarth, 0.0));
-    vec2 rotatedPositionMoon = rotationMatrixEarth * (aPosition + vec2(uDistanceEarth + uDistanceMoon, 0.0));
+
+    // Rotate the Moon around the Earth
+    vec2 rotatedPositionMoonAroundEarth = rotationMatrixEarth * (aPosition + vec2(uDistanceEarth + uDistanceMoon, 0.0));
+
+    // Translate the Moon to follow the Earth's rotation
+    vec2 rotatedPositionMoon = rotatedPositionEarth + rotatedPositionMoonAroundEarth;
 
     gl_Position = vec4(rotatedPositionMoon, 0.0, 1.0);
   }
@@ -159,7 +164,7 @@ function draw() {
     // Rotation for the Earth (rotate around the Sun)
     const rotationAngleEarth = performance.now() * 0.0005;
 
-    // Rotation for the Moon (rotate around both the Earth and the Sun)
+    // Rotation for the Moon (rotate around the Earth)
     const rotationAngleMoon = performance.now() * 0.001;
 
     // Draw the Sun
