@@ -97,6 +97,24 @@ const vertexShaderSource = `
   }
 `;
 
+// GUI controls object
+const parameters = {
+    speedSun: 0.001,
+    speedEarth: 0.0005,
+    //speedMoon: 0.01,
+    clockwiseRotationSun: false, // Added checkbox for clockwise rotation for the Sun
+    //clockwiseRotationEarth: false, // Added checkbox for clockwise rotation for the Earth
+    //clockwiseRotationMoon: false, // Added checkbox for clockwise rotation for the Moon
+};
+
+// Setup dat.gui for GUI controls
+const gui = new dat.GUI();
+gui.add(parameters, 'speedSun').name('RotationSpeedSun').min(0.0005).max(0.01);
+gui.add(parameters, 'speedEarth').name('EarthOrbitRotation').min(0.0001).max(0.001);
+//gui.add(parameters, 'speedMoon').name('Moon Rotation Speed').min(0.001).max(0.1);
+gui.add(parameters, 'clockwiseRotationSun').name('ClockwiseSun');
+//gui.add(parameters, 'clockwiseRotationEarth').name('ClockwiseEarth');
+//gui.add(parameters, 'clockwiseRotationMoon').name('ClockwiseMoon');
 
 
 const fragmentShaderSource = `
@@ -164,19 +182,29 @@ function draw() {
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     // Rotation for the Sun
-    const rotationAngleSun = performance.now() * 0.001;
+    let rotationAngleSun = performance.now() * parameters.speedSun;
+    // Reverse rotation direction if clockwise checkbox for the Sun is checked
+    rotationAngleSun = parameters.clockwiseRotationSun ? -rotationAngleSun : rotationAngleSun;
 
     // Rotation for the Earth (rotate around the Sun)
-    const rotationAngleEarth = performance.now() * 0.0005;
+    let rotationAngleEarth = performance.now() * parameters.speedEarth;
+    // Reverse rotation direction if clockwise checkbox for the Earth is checked
+    rotationAngleEarth = parameters.clockwiseRotationEarth ? -rotationAngleEarth : rotationAngleEarth;
 
     // Rotation for the Moon (rotate around the Earth)
-    const rotationAngleMoon = rotationAngleEarth;
+    let rotationAngleMoon = rotationAngleEarth;
+    // Reverse rotation direction if clockwise checkbox for the Moon is checked
+    rotationAngleMoon = parameters.clockwiseRotationMoon ? -rotationAngleMoon : rotationAngleMoon;
 
     // Rotation for the Earth's own axis
-    const rotationAngleEarthAxis = performance.now() * 0.001;
+    let rotationAngleEarthAxis = performance.now() * parameters.speedSun;
+    // Reverse rotation direction if clockwise checkbox for the Earth is checked
+    rotationAngleEarthAxis = parameters.clockwiseRotationEarth ? -rotationAngleEarthAxis : rotationAngleEarthAxis;
 
     // Rotation for the Moon's own axis
-    const rotationAngleMoonAxis = performance.now() * 0.001;
+    let rotationAngleMoonAxis = performance.now() * parameters.speedSun;
+    // Reverse rotation direction if clockwise checkbox for the Moon is checked
+    rotationAngleMoonAxis = parameters.clockwiseRotationMoon ? -rotationAngleMoonAxis : rotationAngleMoonAxis;
 
     // Draw the Sun
     drawStar(shaderProgramSun, vertexBufferSun, rotationAngleSun);
