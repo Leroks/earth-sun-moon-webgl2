@@ -116,8 +116,8 @@ function mul(matrixA, matrixB) {
     return result;
 }
 
-const outerRadiusSun = 0.1; // Adjusted radius for the Sun
-const innerRadiusSun = 0.04; // Adjusted radius for the Sun
+const outerRadiusSun = 0.1;
+const innerRadiusSun = 0.04;
 
 const verticesSun = [];
 // Center of the sun
@@ -133,10 +133,10 @@ for (let i = 0; i <= 20; i++) {
     verticesSun.push(x, y);
 }
 
-const outerRadiusEarth = 0.06; // Adjusted radius for the Earth
-const innerRadiusEarth = 0.02; // Adjusted radius for the Earth
+const outerRadiusEarth = 0.06;
+const innerRadiusEarth = 0.02;
 
-const distanceFromSun = 0.4; // Adjust the distance of Earth from the Sun
+const distanceFromSun = 1.0;
 
 const verticesEarth = [];
 // Center of the Earth (position it away from the Sun)
@@ -152,10 +152,10 @@ for (let i = 0; i <= 20; i++) {
     verticesEarth.push(x, y);
 }
 
-const outerRadiusMoon = 0.02; // Adjusted radius for the Moon
-const innerRadiusMoon = 0.01; // Adjusted radius for the Moon
+const outerRadiusMoon = 0.02;
+const innerRadiusMoon = 0.01;
 
-const distanceFromEarth = 0.2; // Adjust the distance of the Moon from the Earth
+const distanceFromEarth = 0.2;
 
 const verticesMoon = [];
 // Center of the Moon (position it away from the Earth)
@@ -243,17 +243,17 @@ function drawScene()
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    gl.uniform3fv(centerPosLoc, centerPosSun);
+
     // Draw the Sun
+    gl.uniform3fv(centerPosLoc, centerPosSun);
     gl.uniformMatrix3fv(translationMatrixLoc, true, translationMatrix);
     gl.uniformMatrix3fv(scaleMatrixLoc, true, scaleMatrix1);
     gl.uniform3fv(colorLoc, colorYellow);
     gl.uniform1i(colorShiftLoc, shouldColorShift);
     gl.drawArrays(gl.TRIANGLE_FAN, 0, verticesSun.length / 2);
 
-    gl.uniform3fv(centerPosLoc, centerPosEarth);
-
     // Draw the Earth
+    gl.uniform3fv(centerPosLoc, centerPosEarth);
     gl.uniformMatrix3fv(translationMatrixLoc, true, translationMatrix);
     gl.uniformMatrix3fv(scaleMatrixLoc, true, scaleMatrix2);
     gl.uniform3fv(colorLoc, colorBlue);
