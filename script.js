@@ -1,14 +1,84 @@
 const canvas = document.getElementById('canvas');
 const gl = canvas.getContext('webgl2');
 
-// Set canvas background color to black
-gl.clearColor(0.0, 0.0, 0.0, 1.0);
+if (!gl) {
+    alert('WebGL2 is not available in your browser.');
+    throw new Error('WebGL2 not available');
+}
 
-// Adjust viewport to the canvas size
-gl.viewport(0, 0, canvas.width, canvas.height);
+const vertexShaderSrc = `
+    attribute vec2 position;
 
-const outerRadiusSun = 0.1; // Adjusted radius for the Sun
-const innerRadiusSun = 0.04; // Adjusted radius for the Sun
+    uniform mat3 translationMatrix;
+    uniform mat3 scaleMatrix;
+
+    uniform float rotationAngle;
+    uniform vec3 centerPos;
+
+    void main() 
+    {
+        mat3 originTranslator = mat3(
+            1.0, 0.0, 0.0,  // First column
+            0.0, 1.0, 0.0,  // Second column
+            -centerPos.x, -centerPos.y, 1.0   // Third column
+        );
+    
+        mat3 antiOriginTranslator = mat3(
+            1.0, 0.0, 0.0,  // First column
+            0.0, 1.0, 0.0,  // Second column
+            centerPos.x, centerPos.y, 1.0   // Third column
+        );
+
+        mat3 rotationMatrix = mat3(
+            cos(rotationAngle), -sin(rotationAngle), 0.0,  // First column
+            sin(rotationAngle), cos(rotationAngle), 0.0,  // Second column
+            0.0, 0.0, 1.0   // Third column
+        );
+
+        mat3 transformMat = antiOriginTranslator * scaleMatrix * rotationMatrix * translationMatrix * originTranslator;
+        vec3 pos3D = transformMat  * vec3(position, 1.0);
+        gl_Position = vec4(pos3D, 1.0);
+    }
+`;
+
+const fragmentShaderSrc = `
+    precision mediump float;
+    uniform vec3 color;
+    void main() {
+        gl_FragColor = vec4(color, 1.0);
+    }
+`;
+
+// Compile shader
+function compileShader(src, type) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        const info = gl.getShaderInfoLog(shader);
+        gl.deleteShader(shader);
+        throw new Error('Could not compile shader:\n' + info);
+    }
+    return shader;
+}
+
+const vertexShader = compileShader(vertexShaderSrc, gl.VERTEX_SHADER);
+const fragmentShader = compileShader(fragmentShaderSrc, gl.FRAGMENT_SHADER);
+
+// Link shaders into a program
+const program = gl.createProgram();
+gl.attachShader(program, vertexShader);
+gl.attachShader(program, fragmentShader);
+gl.linkProgram(program);
+if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    const info = gl.getProgramInfoLog(program);
+    gl.deleteProgram(program);
+    throw new Error('Could not link program:\n' + info);
+}
+
+
+const outerRadiusSun = 0.1;
+const innerRadiusSun = 0.04;
 
 const verticesSun = [];
 // Center of the sun
@@ -24,10 +94,10 @@ for (let i = 0; i <= 20; i++) {
     verticesSun.push(x, y);
 }
 
-const outerRadiusEarth = 0.06; // Adjusted radius for the Earth
-const innerRadiusEarth = 0.02; // Adjusted radius for the Earth
+const outerRadiusEarth = 0.06;
+const innerRadiusEarth = 0.02;
 
-const distanceFromSun = 0.4; // Adjust the distance of Earth from the Sun
+const distanceFromSun = 0.5;
 
 const verticesEarth = [];
 // Center of the Earth (position it away from the Sun)
@@ -43,10 +113,10 @@ for (let i = 0; i <= 20; i++) {
     verticesEarth.push(x, y);
 }
 
-const outerRadiusMoon = 0.02; // Adjusted radius for the Moon
-const innerRadiusMoon = 0.01; // Adjusted radius for the Moon
+const outerRadiusMoon = 0.02;
+const innerRadiusMoon = 0.01;
 
-const distanceFromEarth = 0.2; // Adjust the distance of the Moon from the Earth
+const distanceFromEarth = 0.2;
 
 const verticesMoon = [];
 // Center of the Moon (position it away from the Earth)
@@ -62,187 +132,272 @@ for (let i = 0; i <= 20; i++) {
     verticesMoon.push(x, y);
 }
 
-const vertexShaderSource = `
-  attribute vec2 aPosition;
-  uniform float uRotationSun; // Rotation angle around the Sun in radians
-  uniform float uRotationEarth; // Rotation angle around the Earth in radians
-  uniform float uRotationMoonOrbit; // Rotation angle around the Moon's orbit in radians
-  uniform float uDistanceEarth; // Distance from the Sun to the Earth
-  uniform float uDistanceMoon; // Distance from the Earth to the Moon
-  uniform float uRotationEarthAxis; // Rotation angle around the Earth's own axis in radians
-  uniform float uRotationMoonAxis; // Rotation angle around the Moon's own axis in radians
+gl.useProgram(program);
 
-  void main() {
-    // Calculate the Earth's position
-    vec2 earthPosition = vec2(uDistanceEarth * cos(uRotationEarth), uDistanceEarth * sin(uRotationEarth));
-
-    // Calculate the Moon's orbit position around the Earth
-    vec2 moonOrbitPosition = earthPosition + vec2(uDistanceMoon * cos(uRotationMoonOrbit), uDistanceMoon * sin(uRotationMoonOrbit));
-
-    // Rotate the Moon around its orbit
-    vec2 rotatedPositionMoon = moonOrbitPosition + (aPosition - moonOrbitPosition) * mat2(cos(uRotationMoonOrbit), -sin(uRotationMoonOrbit), sin(uRotationMoonOrbit), cos(uRotationMoonOrbit));
-
-    // Rotate the Earth around the Sun
-    vec2 rotatedPositionEarth = earthPosition + (aPosition - earthPosition) * mat2(cos(uRotationEarth), -sin(uRotationEarth), sin(uRotationEarth), cos(uRotationEarth));
-    
-    // Rotate the Earth around its own axis
-    vec2 earthCenterPosition = vec2(uDistanceEarth * cos(uRotationEarth), uDistanceEarth * sin(uRotationEarth));
-    vec2 rotatedPositionEarthSelf = earthCenterPosition + (aPosition - earthCenterPosition) * mat2(cos(uRotationEarthAxis), -sin(uRotationEarthAxis), sin(uRotationEarthAxis), cos(uRotationEarthAxis));
-    
-    // Rotate the Moon around its own axis
-    vec2 moonCenterPosition = moonOrbitPosition + vec2(uDistanceMoon * cos(uRotationMoonOrbit), uDistanceMoon * sin(uRotationMoonOrbit));
-    vec2 rotatedPositionMoonSelf = moonCenterPosition + (aPosition - moonCenterPosition) * mat2(cos(uRotationMoonAxis), -sin(uRotationMoonAxis), sin(uRotationMoonAxis), cos(uRotationMoonAxis));
-
-    gl_Position = vec4(rotatedPositionMoon, 0.0, 1.0);
-  }
-`;
-
-// GUI controls object
-const parameters = {
-    speedSun: 0.001,
-    speedEarth: 0.0005,
-    //speedMoon: 0.01,
-    clockwiseRotationSun: false, // Added checkbox for clockwise rotation for the Sun
-    //clockwiseRotationEarth: false, // Added checkbox for clockwise rotation for the Earth
-    //clockwiseRotationMoon: false, // Added checkbox for clockwise rotation for the Moon
-};
-
-// Setup dat.gui for GUI controls
-const gui = new dat.GUI();
-gui.add(parameters, 'speedSun').name('RotationSpeedSun').min(0.0005).max(0.01);
-gui.add(parameters, 'speedEarth').name('EarthOrbitRotation').min(0.0001).max(0.001);
-//gui.add(parameters, 'speedMoon').name('Moon Rotation Speed').min(0.001).max(0.1);
-gui.add(parameters, 'clockwiseRotationSun').name('ClockwiseSun');
-//gui.add(parameters, 'clockwiseRotationEarth').name('ClockwiseEarth');
-//gui.add(parameters, 'clockwiseRotationMoon').name('ClockwiseMoon');
-
-
-const fragmentShaderSource = `
-  void main() {
-    gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0); // Yellow color for the Sun
-  }
-`;
-
-const fragmentShaderSourceEarth = `
-  void main() {
-    gl_FragColor = vec4(0.0, 0.7, 1.0, 1.0); // Light blue color for the Earth
-  }
-`;
-
-const fragmentShaderSourceMoon = `
-  void main() {
-    gl_FragColor = vec4(0.7, 0.7, 0.7, 1.0); // Gray color for the Moon
-  }
-`;
-
-const vertexBufferSun = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferSun);
+const vertexBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verticesSun), gl.STATIC_DRAW);
 
-const vertexBufferEarth = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferEarth);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verticesEarth), gl.STATIC_DRAW);
+const position = gl.getAttribLocation(program, 'position');
+gl.enableVertexAttribArray(position);
+gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
-const vertexBufferMoon = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferMoon);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verticesMoon), gl.STATIC_DRAW);
+let scaleMatrix1 = [
+    1.0, 0.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 0.0, 1.0
+];
 
-const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-gl.shaderSource(vertexShader, vertexShaderSource);
-gl.compileShader(vertexShader);
+let scaleMatrix2 = [
+    0.65, 0.0, 0.0,
+    0.0, 0.65, 0.0,
+    0.0, 0.0, 1.0
+];
 
-const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-gl.shaderSource(fragmentShader, fragmentShaderSource);
-gl.compileShader(fragmentShader);
+let scaleMatrix3 = [
+    0.3, 0.0, 0.0,
+    0.0, 0.3, 0.0,
+    0.0, 0.0, 1.0
+];
 
-const fragmentShaderEarth = gl.createShader(gl.FRAGMENT_SHADER);
-gl.shaderSource(fragmentShaderEarth, fragmentShaderSourceEarth);
-gl.compileShader(fragmentShaderEarth);
+let translationMatrixSun = [
+    1.0, 0.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 0.0, 1.0
+];
 
-const fragmentShaderMoon = gl.createShader(gl.FRAGMENT_SHADER);
-gl.shaderSource(fragmentShaderMoon, fragmentShaderSourceMoon);
-gl.compileShader(fragmentShaderMoon);
+let translationMatrixEarth = [
+    1.0, 0.0, distanceFromSun,
+    0.0, 1.0, 0.0,
+    0.0, 0.0, 1.0
+];
 
-const shaderProgramSun = gl.createProgram();
-gl.attachShader(shaderProgramSun, vertexShader);
-gl.attachShader(shaderProgramSun, fragmentShader);
-gl.linkProgram(shaderProgramSun);
+let translationMatrixMoon = [
+    1.0, 0.0, distanceFromEarth,
+    0.0, 1.0, 0.0,
+    0.0, 0.0, 1.0
+];
 
-const shaderProgramEarth = gl.createProgram();
-gl.attachShader(shaderProgramEarth, vertexShader);
-gl.attachShader(shaderProgramEarth, fragmentShaderEarth);
-gl.linkProgram(shaderProgramEarth);
 
-const shaderProgramMoon = gl.createProgram();
-gl.attachShader(shaderProgramMoon, vertexShader);
-gl.attachShader(shaderProgramMoon, fragmentShaderMoon);
-gl.linkProgram(shaderProgramMoon);
+const colorBlue = [0.157, 0.737, 0.8];
+const colorWhite = [1.0, 1.0, 1.0];
+const colorYellow = [1.0, 0.8, 0.0];
+let centerPosSun = [0.0, 0.0, 0.0];
+let centerPosEarth = [distanceFromSun, 0.0, 0.0];
+let centerPosMoon = [distanceFromEarth, 0.0, 0.0];
 
-function draw() {
+const centerPosLoc = gl.getUniformLocation(program, 'centerPos');
+const translationMatrixLoc = gl.getUniformLocation(program, 'translationMatrix');
+const scaleMatrixLoc = gl.getUniformLocation(program, 'scaleMatrix');
+const colorLoc = gl.getUniformLocation(program, 'color');
+const timeLoc = gl.getUniformLocation(program, 'time');
+const rotationAngleLoc = gl.getUniformLocation(program, 'rotationAngle');
+const swingLoc = gl.getUniformLocation(program, 'shouldSwing');
+const colorShiftLoc = gl.getUniformLocation(program, 'shouldColorShift');
+const gradientLoc = gl.getUniformLocation(program, 'gradient');
+
+let rotationAngleSun = 0;
+let rotationAngleEarth = 0;
+let rotationAngleMoon = 0;
+let rotationAngleEarthAroundSun = 0;
+let rotationAngleMoonAroundEarth = 0;
+let shouldSwing = 0;
+let shouldColorShift = 0;
+
+let rotateOwnCenterSunSpeed = 0.01;
+let rotateOwnCenterEarthSpeed = 0.03;
+let rotateOwnCenterMoonSpeed = 0.05;
+let orbitSpeedEarth = 0.01;
+let orbitSpeedMoon = 0.04;
+let scaleSunAmount = 1.0;
+let scaleEarthAmount = 0.65;
+let scaleMoonAmount = 0.3;
+
+//DRAW LOOP
+drawScene();
+
+function drawScene() {
+    // Update the time uniform
+    let time = performance.now() / 1000.0;
+    gl.uniform1f(timeLoc, time);
+    gl.uniform1i(swingLoc, shouldSwing);
+
+    gl.uniform1f(gradientLoc, time)
+    gl.uniform1i(colorShiftLoc, shouldColorShift);
+
+    // Clear and draw
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    // Rotation for the Sun
-    let rotationAngleSun = performance.now() * parameters.speedSun;
-    // Reverse rotation direction if clockwise checkbox for the Sun is checked
-    rotationAngleSun = parameters.clockwiseRotationSun ? -rotationAngleSun : rotationAngleSun;
-
-    // Rotation for the Earth (rotate around the Sun)
-    let rotationAngleEarth = performance.now() * parameters.speedEarth;
-    // Reverse rotation direction if clockwise checkbox for the Earth is checked
-    rotationAngleEarth = parameters.clockwiseRotationEarth ? -rotationAngleEarth : rotationAngleEarth;
-
-    // Rotation for the Moon (rotate around the Earth)
-    let rotationAngleMoon = rotationAngleEarth;
-    // Reverse rotation direction if clockwise checkbox for the Moon is checked
-    rotationAngleMoon = parameters.clockwiseRotationMoon ? -rotationAngleMoon : rotationAngleMoon;
-
-    // Rotation for the Earth's own axis
-    let rotationAngleEarthAxis = performance.now() * parameters.speedSun;
-    // Reverse rotation direction if clockwise checkbox for the Earth is checked
-    rotationAngleEarthAxis = parameters.clockwiseRotationEarth ? -rotationAngleEarthAxis : rotationAngleEarthAxis;
-
-    // Rotation for the Moon's own axis
-    let rotationAngleMoonAxis = performance.now() * parameters.speedSun;
-    // Reverse rotation direction if clockwise checkbox for the Moon is checked
-    rotationAngleMoonAxis = parameters.clockwiseRotationMoon ? -rotationAngleMoonAxis : rotationAngleMoonAxis;
 
     // Draw the Sun
-    drawStar(shaderProgramSun, vertexBufferSun, rotationAngleSun);
+    gl.uniform1f(rotationAngleLoc, rotationAngleSun);
+    gl.uniform3fv(centerPosLoc, centerPosSun);
+    gl.uniformMatrix3fv(translationMatrixLoc, true, translationMatrixSun);
+    gl.uniformMatrix3fv(scaleMatrixLoc, true, scaleMatrix1);
+    gl.uniform3fv(colorLoc, colorYellow);
+    gl.uniform1i(colorShiftLoc, shouldColorShift);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, verticesSun.length / 2);
 
     // Draw the Earth
-    drawStar(shaderProgramEarth, vertexBufferEarth, rotationAngleEarth, 0.0, rotationAngleEarthAxis);
+    gl.uniform1f(rotationAngleLoc, rotationAngleEarth);
+    gl.uniform3fv(centerPosLoc, centerPosEarth);
+    gl.uniformMatrix3fv(translationMatrixLoc, true, translationMatrixEarth);
+    gl.uniformMatrix3fv(scaleMatrixLoc, true, scaleMatrix2);
+    gl.uniform3fv(colorLoc, colorBlue);
+    gl.uniform1i(colorShiftLoc, 0.0);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, verticesEarth.length / 2);
 
     // Draw the Moon
-    drawStar(shaderProgramMoon, vertexBufferMoon, rotationAngleMoon, distanceFromEarth, rotationAngleMoonAxis);
+    gl.uniform1f(rotationAngleLoc, rotationAngleMoon);
+    gl.uniform3fv(centerPosLoc, centerPosMoon);
+    gl.uniformMatrix3fv(translationMatrixLoc, true, translationMatrixMoon);
+    gl.uniformMatrix3fv(scaleMatrixLoc, true, scaleMatrix3);
+    gl.uniform3fv(colorLoc, colorWhite);
+    gl.uniform1i(colorShiftLoc, 0.0);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, verticesMoon.length / 2);
 
-    requestAnimationFrame(draw);
+    requestAnimationFrame(drawScene);
+
+    rotateOwnCenterSun(rotateOwnCenterSunSpeed);
+    rotateOwnCenterEarth(rotateOwnCenterEarthSpeed);
+    rotateOwnCenterMoon(rotateOwnCenterMoonSpeed);
+    rotateAroundSunEarth(orbitSpeedEarth);
+    rotateAroundEarthMoon(orbitSpeedMoon);
+    scaleSun(scaleSunAmount);
+    scaleEarth(scaleEarthAmount);
+    scaleMoon(scaleMoonAmount);
 }
 
-function drawStar(program, buffer, rotationAngle, distance = 0.0, rotationAngleAxis = 0.0) {
-    gl.useProgram(program);
 
-    const aPosition = gl.getAttribLocation(program, 'aPosition');
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(aPosition);
-
-    const uRotationSun = gl.getUniformLocation(program, 'uRotationSun');
-    const uRotationEarth = gl.getUniformLocation(program, 'uRotationEarth');
-    const uRotationMoonOrbit = gl.getUniformLocation(program, 'uRotationMoonOrbit');
-    const uDistanceEarth = gl.getUniformLocation(program, 'uDistanceEarth');
-    const uDistanceMoon = gl.getUniformLocation(program, 'uDistanceMoon');
-    const uRotationEarthAxis = gl.getUniformLocation(program, 'uRotationEarthAxis');
-    const uRotationMoonAxis = gl.getUniformLocation(program, 'uRotationMoonAxis');
-
-    gl.uniform1f(uRotationSun, rotationAngle);
-    gl.uniform1f(uRotationEarth, rotationAngle);
-    gl.uniform1f(uRotationMoonOrbit, rotationAngle);
-    gl.uniform1f(uDistanceEarth, 0.0);
-    gl.uniform1f(uDistanceMoon, distance);
-    gl.uniform1f(uRotationEarthAxis, rotationAngleAxis);
-    gl.uniform1f(uRotationMoonAxis, rotationAngleAxis);
-
-    gl.drawArrays(gl.TRIANGLE_FAN, 0, verticesSun.length / 2);
+function rotateOwnCenterSun(x) {
+    rotationAngleSun += x
 }
 
-draw();
+function rotateOwnCenterEarth(x) {
+    rotationAngleEarth += x
+}
+
+function rotateOwnCenterMoon(x) {
+    rotationAngleMoon += x
+}
+
+function rotateAroundSunEarth(x) {
+    // Update the rotation angle
+    rotationAngleEarthAroundSun += x;
+
+    // Calculate the new translation matrix based on the rotation
+    const cosAngle = Math.cos(rotationAngleEarthAroundSun);
+    const sinAngle = Math.sin(rotationAngleEarthAroundSun);
+    const newX = distanceFromSun * cosAngle;
+    const newY = distanceFromSun * sinAngle;
+
+    // Update the translationMatrixEarth
+    translationMatrixEarth[2] = newX;
+    translationMatrixEarth[5] = newY;
+
+    // Update the center position
+    centerPosEarth = [newX, newY, 0.0];
+
+}
+
+function rotateAroundEarthMoon(x) {
+    // Update the rotation angle
+    rotationAngleMoonAroundEarth += x;
+
+    // Calculate the position of the Moon relative to the Earth
+    const cosAngle = Math.cos(rotationAngleMoonAroundEarth);
+    const sinAngle = Math.sin(rotationAngleMoonAroundEarth);
+    const relativeX = distanceFromEarth * cosAngle;
+    const relativeY = distanceFromEarth * sinAngle;
+
+    // Update the translation matrix of the Moon relative to the Earth
+    translationMatrixMoon[2] = centerPosEarth[0] + relativeX;
+    translationMatrixMoon[5] = centerPosEarth[1] + relativeY;
+
+    // Update the center position of the Moon
+    centerPosMoon = [translationMatrixMoon[2], translationMatrixMoon[5], 0.0];
+}
+
+function scaleSun(x) {
+    scaleMatrix1 = [
+        x, 0.0, 0.0,
+        0.0, x, 0.0,
+        0.0, 0.0, 1.0
+    ];
+}
+
+function scaleEarth(x) {
+    scaleMatrix2 = [
+        x, 0.0, 0.0,
+        0.0, x, 0.0,
+        0.0, 0.0, 1.0
+    ];
+}
+
+function scaleMoon(x) {
+    scaleMatrix3 = [
+        x, 0.0, 0.0,
+        0.0, x, 0.0,
+        0.0, 0.0, 1.0
+    ];
+}
+
+//Slider Controls
+document.getElementById("scaleSun").onchange = function () {
+    scaleSunAmount = event.srcElement.value / 1.0;
+};
+document.getElementById("rotationSpeedSun").onchange = function () {
+    rotateOwnCenterSunSpeed = event.srcElement.value / 1.0;
+};
+document.getElementById("scaleEarth").onchange = function () {
+    scaleEarthAmount = event.srcElement.value / 1.0;
+};
+document.getElementById("rotationSpeedEarth").onchange = function () {
+    rotateOwnCenterEarthSpeed = event.srcElement.value / 1.0;
+};
+document.getElementById("scaleMoon").onchange = function () {
+    scaleMoonAmount = event.srcElement.value / 1.0;
+};
+document.getElementById("rotationSpeedMoon").onchange = function () {
+    rotateOwnCenterMoonSpeed = event.srcElement.value / 1.0;
+};
+document.getElementById("earthOrbitSpeed").onchange = function () {
+    orbitSpeedEarth = event.srcElement.value / 1.0;
+};
+document.getElementById("moonOrbitSpeed").onchange = function () {
+    orbitSpeedMoon = event.srcElement.value / 1.0;
+};
+
+// Boolean variables for clockwise rotation and orbit
+let clockwiseSun = false;
+let clockwiseEarth = false;
+let clockwiseMoon = false;
+let clockwiseEarthOrbit = false;
+let clockwiseMoonOrbit = false;
+
+// Checkbox Controls
+document.getElementById("clockwiseSun").onchange = function () {
+    clockwiseSun = event.srcElement.checked;
+    rotateOwnCenterSunSpeed = (clockwiseSun ? -1 : 1) * Math.abs(rotateOwnCenterSunSpeed);
+};
+
+document.getElementById("clockwiseEarth").onchange = function () {
+    clockwiseEarth = event.srcElement.checked;
+    rotateOwnCenterEarthSpeed = (clockwiseEarth ? -1 : 1) * Math.abs(rotateOwnCenterEarthSpeed);
+};
+
+document.getElementById("clockwiseMoon").onchange = function () {
+    clockwiseMoon = event.srcElement.checked;
+    rotateOwnCenterMoonSpeed = (clockwiseMoon ? -1 : 1) * Math.abs(rotateOwnCenterMoonSpeed);
+};
+
+document.getElementById("earthOrbitClockwise").onchange = function () {
+    clockwiseEarthOrbit = event.srcElement.checked;
+    orbitSpeedEarth = (clockwiseEarthOrbit ? -1 : 1) * Math.abs(orbitSpeedEarth);
+};
+
+document.getElementById("moonOrbitClockwise").onchange = function () {
+    clockwiseMoonOrbit = event.srcElement.checked;
+    orbitSpeedMoon = (clockwiseMoonOrbit ? -1 : 1) * Math.abs(orbitSpeedMoon);
+};
