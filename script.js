@@ -136,7 +136,7 @@ for (let i = 0; i <= 20; i++) {
 const outerRadiusEarth = 0.06;
 const innerRadiusEarth = 0.02;
 
-const distanceFromSun = 1.0;
+const distanceFromSun = 0.5;
 
 const verticesEarth = [];
 // Center of the Earth (position it away from the Sun)
@@ -193,15 +193,15 @@ let scaleMatrix2 = [
     0.0,  0.0,  1.0
 ];
 
-let translationMatrix = [
+let translationMatrixSun = [
     1.0, 0.0, 0.0,
     0.0, 1.0, 0.0,
     0.0, 0.0, 1.0
 ];
 
 let translationMatrixEarth = [
-    1.0, 0.0, 0.0,
-    0.0, 1.0, distanceFromSun,
+    1.0, 0.0, distanceFromSun,
+    0.0, 1.0, 0.0,
     0.0, 0.0, 1.0
 ];
 
@@ -223,7 +223,8 @@ const swingLoc = gl.getUniformLocation(program, 'shouldSwing');
 const colorShiftLoc = gl.getUniformLocation(program, 'shouldColorShift');
 const gradientLoc = gl.getUniformLocation(program, 'gradient');
 
-let rotationAngle = 0;
+let rotationAngleSun = 0;
+let rotationAngleEarth = 0;
 let shouldSwing = 0;
 let shouldColorShift = 0;
 
@@ -235,7 +236,7 @@ function drawScene()
     let time = performance.now() / 1000.0;
     gl.uniform1f(timeLoc, time);
     gl.uniform1i(swingLoc, shouldSwing);
-    gl.uniform1f(rotationAngleLoc, rotationAngle);
+
     gl.uniform1f(gradientLoc, time)
     gl.uniform1i(colorShiftLoc, shouldColorShift);
 
@@ -245,22 +246,27 @@ function drawScene()
 
 
     // Draw the Sun
+    gl.uniform1f(rotationAngleLoc, rotationAngleSun);
     gl.uniform3fv(centerPosLoc, centerPosSun);
-    gl.uniformMatrix3fv(translationMatrixLoc, true, translationMatrix);
+    gl.uniformMatrix3fv(translationMatrixLoc, true, translationMatrixSun);
     gl.uniformMatrix3fv(scaleMatrixLoc, true, scaleMatrix1);
     gl.uniform3fv(colorLoc, colorYellow);
     gl.uniform1i(colorShiftLoc, shouldColorShift);
     gl.drawArrays(gl.TRIANGLE_FAN, 0, verticesSun.length / 2);
 
     // Draw the Earth
+    gl.uniform1f(rotationAngleLoc, rotationAngleEarth);
     gl.uniform3fv(centerPosLoc, centerPosEarth);
-    gl.uniformMatrix3fv(translationMatrixLoc, true, translationMatrix);
+    gl.uniformMatrix3fv(translationMatrixLoc, true, translationMatrixEarth);
     gl.uniformMatrix3fv(scaleMatrixLoc, true, scaleMatrix2);
     gl.uniform3fv(colorLoc, colorBlue);
     gl.uniform1i(colorShiftLoc, 0.0);
     gl.drawArrays(gl.TRIANGLE_FAN, 0, verticesEarth.length / 2);
 
     requestAnimationFrame(drawScene);
+
+    rotateOwnCenterSun(0.01);
+    rotateOwnCenterEarth(0.03);
 }
 
 
@@ -271,38 +277,40 @@ document.addEventListener('keydown', function(event)
     {
         case "ArrowLeft":
             centerPosSun[0] -= 0.1;
-            translationMatrix[2] -= 0.1;
+            translationMatrixSun[2] -= 0.1;
             break;
         case "ArrowRight":
             centerPosSun[0] += 0.1;
-            translationMatrix[2] += 0.1;
+            translationMatrixSun[2] += 0.1;
             break;
         case "ArrowUp":
             centerPosSun[1] += 0.1;
-            translationMatrix[5] += 0.1;
+            translationMatrixSun[5] += 0.1;
             break;
         case "ArrowDown":
             centerPosSun[1] -= 0.1;
-            translationMatrix[5] -= 0.1;
+            translationMatrixSun[5] -= 0.1;
             break;
 
         case '+': // Plus key
-            rotationAngle += 1.0;
+            rotationAngleSun += 1.0;
+            rotationAngleEarth += 1.0;
             break;
 
         case '-': // Minus key
-            rotationAngle -= 1.0;
+            rotationAngleSun -= 1.0;
+            rotationAngleEarth -= 1.0;
             break;
 
         case '1': // One key
             // Reset the transformation and rotation matrices to their initial state
             centerPosSun = [0.0, 0.0, 0.0];
-            translationMatrix = [
+            translationMatrixSun = [
                 1.0, 0.0, 0.0,
                 0.0, 1.0, 0.0,
                 0.0, 0.0, 1.0
             ];
-            rotationAngle = 0.0;
+            rotationAngleSun = 0.0;
             shouldSwing = 0.0;
             shouldColorShift = 0.0;
             break;
@@ -317,3 +325,11 @@ document.addEventListener('keydown', function(event)
             break;
     }
 });
+
+function rotateOwnCenterSun(x){
+    rotationAngleSun += x
+}
+
+function rotateOwnCenterEarth(x){
+    rotationAngleEarth += x
+}
