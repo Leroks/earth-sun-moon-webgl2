@@ -193,6 +193,12 @@ let scaleMatrix2 = [
     0.0,  0.0,  1.0
 ];
 
+let scaleMatrix3 = [
+    0.3, 0.0,  0.0,
+    0.0,  0.3, 0.0,
+    0.0,  0.0,  1.0
+];
+
 let translationMatrixSun = [
     1.0, 0.0, 0.0,
     0.0, 1.0, 0.0,
@@ -201,6 +207,12 @@ let translationMatrixSun = [
 
 let translationMatrixEarth = [
     1.0, 0.0, distanceFromSun,
+    0.0, 1.0, 0.0,
+    0.0, 0.0, 1.0
+];
+
+let translationMatrixMoon = [
+    1.0, 0.0, distanceFromEarth,
     0.0, 1.0, 0.0,
     0.0, 0.0, 1.0
 ];
@@ -227,6 +239,7 @@ let rotationAngleSun = 0;
 let rotationAngleEarth = 0;
 let rotationAngleMoon = 0;
 let rotationAngleEarthAroundSun = 0;
+let rotationAngleMoonAroundEarth = 0;
 let shouldSwing = 0;
 let shouldColorShift = 0;
 
@@ -265,11 +278,22 @@ function drawScene()
     gl.uniform1i(colorShiftLoc, 0.0);
     gl.drawArrays(gl.TRIANGLE_FAN, 0, verticesEarth.length / 2);
 
+    // Draw the Moon
+    gl.uniform1f(rotationAngleLoc, rotationAngleMoon);
+    gl.uniform3fv(centerPosLoc, centerPosMoon);
+    gl.uniformMatrix3fv(translationMatrixLoc, true, translationMatrixMoon);
+    gl.uniformMatrix3fv(scaleMatrixLoc, true, scaleMatrix3);
+    gl.uniform3fv(colorLoc, colorWhite);
+    gl.uniform1i(colorShiftLoc, 0.0);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, verticesMoon.length / 2);
+
     requestAnimationFrame(drawScene);
 
     rotateOwnCenterSun(0.01);
     rotateOwnCenterEarth(0.03);
+    rotateOwnCenterMoon(0.05);
     rotateAroundSunEarth(0.01);
+    rotateAroundEarthMoon(0.04);
 }
 
 
@@ -359,3 +383,22 @@ function rotateAroundSunEarth(x){
     centerPosEarth = [newX, newY, 0.0];
 
 }
+
+function rotateAroundEarthMoon(x) {
+    // Update the rotation angle
+    rotationAngleMoonAroundEarth += x;
+
+    // Calculate the position of the Moon relative to the Earth
+    const cosAngle = Math.cos(rotationAngleMoonAroundEarth);
+    const sinAngle = Math.sin(rotationAngleMoonAroundEarth);
+    const relativeX = distanceFromEarth * cosAngle;
+    const relativeY = distanceFromEarth * sinAngle;
+
+    // Update the translation matrix of the Moon relative to the Earth
+    translationMatrixMoon[2] = centerPosEarth[0] + relativeX;
+    translationMatrixMoon[5] = centerPosEarth[1] + relativeY;
+
+    // Update the center position of the Moon
+    centerPosMoon = [translationMatrixMoon[2], translationMatrixMoon[5], 0.0];
+}
+
