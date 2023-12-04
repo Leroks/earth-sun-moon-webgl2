@@ -95,26 +95,6 @@ if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     throw new Error('Could not link program:\n' + info);
 }
 
-// Function to multiply two matrices
-function mul(matrixA, matrixB) {
-    if (matrixA.length !== 9 || matrixB.length !== 9) {
-        console.error("Both matrices must be 3x3 matrices.");
-        return null;
-    }
-
-    const result = [];
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-            let sum = 0;
-            for (let k = 0; k < 3; k++) {
-                sum += matrixA[i * 3 + k] * matrixB[k * 3 + j];
-            }
-            result.push(sum);
-        }
-    }
-
-    return result;
-}
 
 const outerRadiusSun = 0.1;
 const innerRadiusSun = 0.04;
@@ -188,15 +168,15 @@ let scaleMatrix1 = [
 ];
 
 let scaleMatrix2 = [
-    0.65, 0.0,  0.0,
-    0.0,  0.65, 0.0,
-    0.0,  0.0,  1.0
+    0.65, 0.0, 0.0,
+    0.0, 0.65, 0.0,
+    0.0, 0.0, 1.0
 ];
 
 let scaleMatrix3 = [
-    0.3, 0.0,  0.0,
-    0.0,  0.3, 0.0,
-    0.0,  0.0,  1.0
+    0.3, 0.0, 0.0,
+    0.0, 0.3, 0.0,
+    0.0, 0.0, 1.0
 ];
 
 let translationMatrixSun = [
@@ -254,8 +234,8 @@ let scaleMoonAmount = 0.3;
 
 //DRAW LOOP
 drawScene();
-function drawScene()
-{
+
+function drawScene() {
     // Update the time uniform
     let time = performance.now() / 1000.0;
     gl.uniform1f(timeLoc, time);
@@ -309,75 +289,19 @@ function drawScene()
 }
 
 
-//KEY CALLBACK
-document.addEventListener('keydown', function(event)
-{
-    switch(event.key)
-    {
-        case "ArrowLeft":
-            centerPosEarth[0] -= 0.1;
-            translationMatrixEarth[2] -= 0.1;
-            break;
-        case "ArrowRight":
-            centerPosEarth[0] += 0.1;
-            translationMatrixEarth[2] += 0.1;
-            break;
-        case "ArrowUp":
-            centerPosEarth[1] += 0.1;
-            translationMatrixEarth[5] += 0.1;
-            break;
-        case "ArrowDown":
-            centerPosEarth[1] -= 0.1;
-            translationMatrixEarth[5] -= 0.1;
-            break;
-
-        case '+': // Plus key
-            rotationAngleSun += 1.0;
-            rotationAngleEarth += 1.0;
-            break;
-
-        case '-': // Minus key
-            rotationAngleSun -= 1.0;
-            rotationAngleEarth -= 1.0;
-            break;
-
-        case '1': // One key
-            // Reset the transformation and rotation matrices to their initial state
-            centerPosSun = [0.0, 0.0, 0.0];
-            translationMatrixSun = [
-                1.0, 0.0, 0.0,
-                0.0, 1.0, 0.0,
-                0.0, 0.0, 1.0
-            ];
-            rotationAngleSun = 0.0;
-            shouldSwing = 0.0;
-            shouldColorShift = 0.0;
-            break;
-
-        case '2':
-            shouldSwing = 1.0;
-            break;
-
-        case '3':
-            shouldSwing = 1.0;
-            shouldColorShift = 1.0;
-            break;
-    }
-});
-
-function rotateOwnCenterSun(x){
+function rotateOwnCenterSun(x) {
     rotationAngleSun += x
 }
 
-function rotateOwnCenterEarth(x){
+function rotateOwnCenterEarth(x) {
     rotationAngleEarth += x
 }
 
-function rotateOwnCenterMoon(x){
+function rotateOwnCenterMoon(x) {
     rotationAngleMoon += x
 }
 
-function rotateAroundSunEarth(x){
+function rotateAroundSunEarth(x) {
     // Update the rotation angle
     rotationAngleEarthAroundSun += x;
 
@@ -414,7 +338,7 @@ function rotateAroundEarthMoon(x) {
     centerPosMoon = [translationMatrixMoon[2], translationMatrixMoon[5], 0.0];
 }
 
-function scaleSun(x){
+function scaleSun(x) {
     scaleMatrix1 = [
         x, 0.0, 0.0,
         0.0, x, 0.0,
@@ -422,7 +346,7 @@ function scaleSun(x){
     ];
 }
 
-function scaleEarth(x){
+function scaleEarth(x) {
     scaleMatrix2 = [
         x, 0.0, 0.0,
         0.0, x, 0.0,
@@ -430,7 +354,7 @@ function scaleEarth(x){
     ];
 }
 
-function scaleMoon(x){
+function scaleMoon(x) {
     scaleMatrix3 = [
         x, 0.0, 0.0,
         0.0, x, 0.0,
@@ -439,33 +363,61 @@ function scaleMoon(x){
 }
 
 //Slider Controls
-document.getElementById("scaleSun").onchange = function() {
-    scaleSunAmount = event.srcElement.value/1.0;
+document.getElementById("scaleSun").onchange = function () {
+    scaleSunAmount = event.srcElement.value / 1.0;
 };
-document.getElementById("rotationSpeedSun").onchange = function() {
-    rotateOwnCenterSunSpeed = event.srcElement.value/1.0;
+document.getElementById("rotationSpeedSun").onchange = function () {
+    rotateOwnCenterSunSpeed = event.srcElement.value / 1.0;
 };
-document.getElementById("scaleEarth").onchange = function() {
-    scaleEarthAmount = event.srcElement.value/1.0;
+document.getElementById("scaleEarth").onchange = function () {
+    scaleEarthAmount = event.srcElement.value / 1.0;
 };
-document.getElementById("rotationSpeedEarth").onchange = function() {
-    rotateOwnCenterEarthSpeed= event.srcElement.value/1.0;
+document.getElementById("rotationSpeedEarth").onchange = function () {
+    rotateOwnCenterEarthSpeed = event.srcElement.value / 1.0;
 };
-document.getElementById("scaleMoon").onchange = function() {
-    scaleMoonAmount = event.srcElement.value/1.0;
+document.getElementById("scaleMoon").onchange = function () {
+    scaleMoonAmount = event.srcElement.value / 1.0;
 };
-document.getElementById("rotationSpeedMoon").onchange = function() {
-    rotateOwnCenterMoonSpeed = event.srcElement.value/1.0;
+document.getElementById("rotationSpeedMoon").onchange = function () {
+    rotateOwnCenterMoonSpeed = event.srcElement.value / 1.0;
 };
-document.getElementById("earthOrbitSpeed").onchange = function() {
-    orbitSpeedEarth = event.srcElement.value/1.0;
+document.getElementById("earthOrbitSpeed").onchange = function () {
+    orbitSpeedEarth = event.srcElement.value / 1.0;
 };
-document.getElementById("moonOrbitSpeed").onchange = function() {
-    orbitSpeedMoon = event.srcElement.value/1.0;
+document.getElementById("moonOrbitSpeed").onchange = function () {
+    orbitSpeedMoon = event.srcElement.value / 1.0;
 };
 
-//Checkbox Controls
-document.getElementById("clockwiseSun").onchange = function() {
-    shouldSwing = event.srcElement.checked;
+// Boolean variables for clockwise rotation and orbit
+let clockwiseSun = false;
+let clockwiseEarth = false;
+let clockwiseMoon = false;
+let clockwiseEarthOrbit = false;
+let clockwiseMoonOrbit = false;
+
+// Checkbox Controls
+document.getElementById("clockwiseSun").onchange = function () {
+    clockwiseSun = event.srcElement.checked;
+    rotateOwnCenterSunSpeed = (clockwiseSun ? -1 : 1) * Math.abs(rotateOwnCenterSunSpeed);
+};
+
+document.getElementById("clockwiseEarth").onchange = function () {
+    clockwiseEarth = event.srcElement.checked;
+    rotateOwnCenterEarthSpeed = (clockwiseEarth ? -1 : 1) * Math.abs(rotateOwnCenterEarthSpeed);
+};
+
+document.getElementById("clockwiseMoon").onchange = function () {
+    clockwiseMoon = event.srcElement.checked;
+    rotateOwnCenterMoonSpeed = (clockwiseMoon ? -1 : 1) * Math.abs(rotateOwnCenterMoonSpeed);
+};
+
+document.getElementById("earthOrbitClockwise").onchange = function () {
+    clockwiseEarthOrbit = event.srcElement.checked;
+    orbitSpeedEarth = (clockwiseEarthOrbit ? -1 : 1) * Math.abs(orbitSpeedEarth);
+};
+
+document.getElementById("moonOrbitClockwise").onchange = function () {
+    clockwiseMoonOrbit = event.srcElement.checked;
+    orbitSpeedMoon = (clockwiseMoonOrbit ? -1 : 1) * Math.abs(orbitSpeedMoon);
 };
 
