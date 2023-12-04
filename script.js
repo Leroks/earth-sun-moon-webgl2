@@ -116,81 +116,66 @@ function mul(matrixA, matrixB) {
     return result;
 }
 
-// Calculate the coordinates of the dividing points
-const divideLineIntoThree = (point1, point2) => {
-    const dividingPoints = [];
+const outerRadiusSun = 0.1; // Adjusted radius for the Sun
+const innerRadiusSun = 0.04; // Adjusted radius for the Sun
 
-    // Calculate the coordinates of the first dividing point
-    const firstDividingPoint = {
-        x: point1.x + (1 / 3) * (point2.x - point1.x),
-        y: point1.y + (1 / 3) * (point2.y - point1.y),
-    };
+const verticesSun = [];
+// Center of the sun
+verticesSun.push(0.0, 0.0);
 
-    // Calculate the coordinates of the second dividing point
-    const secondDividingPoint = {
-        x: point1.x + (2 / 3) * (point2.x - point1.x),
-        y: point1.y + (2 / 3) * (point2.y - point1.y),
-    };
+for (let i = 0; i <= 20; i++) {
+    const radius = i % 2 === 0 ? outerRadiusSun : innerRadiusSun;
+    const theta = (i / 10) * Math.PI; // Angle for each point
 
-    dividingPoints.push(firstDividingPoint, secondDividingPoint);
+    const x = radius * Math.cos(theta);
+    const y = radius * Math.sin(theta);
 
-    return dividingPoints;
-};
-
-function findThirdVertex(v1, v2) {
-    // Calculate the distance between v1 and v2
-    const distance = Math.sqrt(
-        Math.pow(v2.x - v1.x, 2) + Math.pow(v2.y - v1.y, 2)
-    );
-
-    // Calculate the angle between the line connecting v1 and v2 and the x-axis
-    const angle = Math.atan2(v2.y - v1.y, v2.x - v1.x);
-
-    // Calculate the coordinates of the third vertex
-    const thirdVertexX = v1.x + distance * Math.cos(angle + (Math.PI) / 3);
-    const thirdVertexY = v1.y + distance * Math.sin(angle + (Math.PI) / 3);
-
-    return { x: thirdVertexX, y: thirdVertexY };
+    verticesSun.push(x, y);
 }
 
-function addTriangles(point1, point2, verticesOut, iteration, firstTime)
-{
-    if(iteration <= 0){
-        return;
-    }
+const outerRadiusEarth = 0.06; // Adjusted radius for the Earth
+const innerRadiusEarth = 0.02; // Adjusted radius for the Earth
 
-    let dividingPoints = divideLineIntoThree(point1, point2);
-    let thirdPoint = findThirdVertex(dividingPoints[0], dividingPoints[1]);
-    verticesOut.push(dividingPoints[0], dividingPoints[1], thirdPoint);
+const distanceFromSun = 0.4; // Adjust the distance of Earth from the Sun
 
-    addTriangles(dividingPoints[0], thirdPoint, verticesOut, iteration-1, false);
-    addTriangles(thirdPoint, dividingPoints[1], verticesOut, iteration-1, false);
+const verticesEarth = [];
+// Center of the Earth (position it away from the Sun)
+verticesEarth.push(distanceFromSun, 0.0);
 
-    if(firstTime)
-    {
-        addTriangles(point1, dividingPoints[0], verticesOut, iteration-1, false);
-        addTriangles(dividingPoints[1], point2 , verticesOut, iteration-1, false);
-    }
+for (let i = 0; i <= 20; i++) {
+    const radius = i % 2 === 0 ? outerRadiusEarth : innerRadiusEarth;
+    const theta = (i / 10) * Math.PI; // Angle for each point
+
+    const x = distanceFromSun + radius * Math.cos(theta);
+    const y = radius * Math.sin(theta);
+
+    verticesEarth.push(x, y);
 }
 
-vertices = []
-let point1 = { x: 0.0, y: 0.5 * Math.sqrt(3) - 0.5};
-let point2 = { x: 0.5, y: -0.5 };
-let point3 = { x: -0.5, y: -0.5 };
-vertices.push(point1, point2, point3)
+const outerRadiusMoon = 0.02; // Adjusted radius for the Moon
+const innerRadiusMoon = 0.01; // Adjusted radius for the Moon
 
+const distanceFromEarth = 0.2; // Adjust the distance of the Moon from the Earth
 
-addTriangles(point1, point2, vertices, 4, true)
-addTriangles(point2, point3, vertices, 4, true)
-addTriangles(point3, point1, vertices, 4, true)
+const verticesMoon = [];
+// Center of the Moon (position it away from the Earth)
+verticesMoon.push(distanceFromEarth, 0.0);
 
-const verticesFinal = vertices.map(obj => [obj.x, obj.y]).flat();
+for (let i = 0; i <= 20; i++) {
+    const radius = i % 2 === 0 ? outerRadiusMoon : innerRadiusMoon;
+    const theta = (i / 10) * Math.PI; // Angle for each point
+
+    const x = distanceFromEarth + radius * Math.cos(theta);
+    const y = radius * Math.sin(theta);
+
+    verticesMoon.push(x, y);
+}
 
 gl.useProgram(program);
 
 const vertexBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verticesFinal), gl.STATIC_DRAW);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verticesSun), gl.STATIC_DRAW);
 
 const position = gl.getAttribLocation(program, 'position');
 gl.enableVertexAttribArray(position);
@@ -214,10 +199,19 @@ let translationMatrix = [
     0.0, 0.0, 1.0
 ];
 
+let translationMatrixEarth = [
+    1.0, 0.0, 0.0,
+    0.0, 1.0, distanceFromSun,
+    0.0, 0.0, 1.0
+];
+
 
 const colorBlue = [0.157, 0.737, 0.8];
 const colorWhite = [1.0, 1.0, 1.0];
-let centerPos = [0.0, (point1.y + point2.y + point3.y) / 3, 0.0];
+const colorYellow = [1.0, 0.8, 0.0];
+let centerPosSun = [0.0, 0.0, 0.0];
+let centerPosEarth = [distanceFromSun, 0.0, 0.0];
+let centerPosMoon = [distanceFromEarth, 0.0, 0.0];
 
 const centerPosLoc = gl.getUniformLocation(program, 'centerPos');
 const translationMatrixLoc = gl.getUniformLocation(program, 'translationMatrix');
@@ -249,20 +243,22 @@ function drawScene()
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    gl.uniform3fv(centerPosLoc, centerPos);
-    // Draw the blue snowflake
+    gl.uniform3fv(centerPosLoc, centerPosSun);
+    // Draw the Sun
     gl.uniformMatrix3fv(translationMatrixLoc, true, translationMatrix);
     gl.uniformMatrix3fv(scaleMatrixLoc, true, scaleMatrix1);
-    gl.uniform3fv(colorLoc, colorBlue);
+    gl.uniform3fv(colorLoc, colorYellow);
     gl.uniform1i(colorShiftLoc, shouldColorShift);
-    gl.drawArrays(gl.TRIANGLES, 0, verticesFinal.length / 2);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, verticesSun.length / 2);
 
-    // Draw the white snowflake
+    gl.uniform3fv(centerPosLoc, centerPosEarth);
+
+    // Draw the Earth
     gl.uniformMatrix3fv(translationMatrixLoc, true, translationMatrix);
     gl.uniformMatrix3fv(scaleMatrixLoc, true, scaleMatrix2);
-    gl.uniform3fv(colorLoc, colorWhite);
+    gl.uniform3fv(colorLoc, colorBlue);
     gl.uniform1i(colorShiftLoc, 0.0);
-    gl.drawArrays(gl.TRIANGLES, 0, verticesFinal.length / 2);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, verticesEarth.length / 2);
 
     requestAnimationFrame(drawScene);
 }
@@ -274,19 +270,19 @@ document.addEventListener('keydown', function(event)
     switch(event.key)
     {
         case "ArrowLeft":
-            centerPos[0] -= 0.1;
+            centerPosSun[0] -= 0.1;
             translationMatrix[2] -= 0.1;
             break;
         case "ArrowRight":
-            centerPos[0] += 0.1;
+            centerPosSun[0] += 0.1;
             translationMatrix[2] += 0.1;
             break;
         case "ArrowUp":
-            centerPos[1] += 0.1;
+            centerPosSun[1] += 0.1;
             translationMatrix[5] += 0.1;
             break;
         case "ArrowDown":
-            centerPos[1] -= 0.1;
+            centerPosSun[1] -= 0.1;
             translationMatrix[5] -= 0.1;
             break;
 
@@ -300,7 +296,7 @@ document.addEventListener('keydown', function(event)
 
         case '1': // One key
             // Reset the transformation and rotation matrices to their initial state
-            centerPos = [0.0, (point1.y + point2.y + point3.y) / 3, 0.0];
+            centerPosSun = [0.0, 0.0, 0.0];
             translationMatrix = [
                 1.0, 0.0, 0.0,
                 0.0, 1.0, 0.0,
