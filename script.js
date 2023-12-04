@@ -225,6 +225,8 @@ const gradientLoc = gl.getUniformLocation(program, 'gradient');
 
 let rotationAngleSun = 0;
 let rotationAngleEarth = 0;
+let rotationAngleMoon = 0;
+let rotationAngleEarthAroundSun = 0;
 let shouldSwing = 0;
 let shouldColorShift = 0;
 
@@ -267,6 +269,7 @@ function drawScene()
 
     rotateOwnCenterSun(0.01);
     rotateOwnCenterEarth(0.03);
+    rotateAroundSunEarth(0.01);
 }
 
 
@@ -276,20 +279,20 @@ document.addEventListener('keydown', function(event)
     switch(event.key)
     {
         case "ArrowLeft":
-            centerPosSun[0] -= 0.1;
-            translationMatrixSun[2] -= 0.1;
+            centerPosEarth[0] -= 0.1;
+            translationMatrixEarth[2] -= 0.1;
             break;
         case "ArrowRight":
-            centerPosSun[0] += 0.1;
-            translationMatrixSun[2] += 0.1;
+            centerPosEarth[0] += 0.1;
+            translationMatrixEarth[2] += 0.1;
             break;
         case "ArrowUp":
-            centerPosSun[1] += 0.1;
-            translationMatrixSun[5] += 0.1;
+            centerPosEarth[1] += 0.1;
+            translationMatrixEarth[5] += 0.1;
             break;
         case "ArrowDown":
-            centerPosSun[1] -= 0.1;
-            translationMatrixSun[5] -= 0.1;
+            centerPosEarth[1] -= 0.1;
+            translationMatrixEarth[5] -= 0.1;
             break;
 
         case '+': // Plus key
@@ -332,4 +335,27 @@ function rotateOwnCenterSun(x){
 
 function rotateOwnCenterEarth(x){
     rotationAngleEarth += x
+}
+
+function rotateOwnCenterMoon(x){
+    rotationAngleMoon += x
+}
+
+function rotateAroundSunEarth(x){
+    // Update the rotation angle
+    rotationAngleEarthAroundSun += x;
+
+    // Calculate the new translation matrix based on the rotation
+    const cosAngle = Math.cos(rotationAngleEarthAroundSun);
+    const sinAngle = Math.sin(rotationAngleEarthAroundSun);
+    const newX = distanceFromSun * cosAngle;
+    const newY = distanceFromSun * sinAngle;
+
+    // Update the translationMatrixEarth
+    translationMatrixEarth[2] = newX;
+    translationMatrixEarth[5] = newY;
+
+    // Update the center position
+    centerPosEarth = [newX, newY, 0.0];
+
 }
