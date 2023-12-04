@@ -12,15 +12,11 @@ const vertexShaderSrc = `
     uniform mat3 translationMatrix;
     uniform mat3 scaleMatrix;
 
-    uniform float time;
     uniform float rotationAngle;
-    uniform int shouldSwing;
     uniform vec3 centerPos;
 
     void main() 
     {
-        float angle = sin(time) * 80.0 * 3.1415926535897932384626433832795 / 180.0;
-
         mat3 originTranslator = mat3(
             1.0, 0.0, 0.0,  // First column
             0.0, 1.0, 0.0,  // Second column
@@ -39,16 +35,6 @@ const vertexShaderSrc = `
             0.0, 0.0, 1.0   // Third column
         );
 
-        if(shouldSwing == 1)
-        {
-            rotationMatrix = mat3(
-                cos(rotationAngle + angle), -sin(rotationAngle + angle), 0.0,  // First column
-                sin(rotationAngle + angle), cos(rotationAngle + angle), 0.0,  // Second column
-                0.0, 0.0, 1.0   // Third column
-            );            
-        }
-
-
         mat3 transformMat = antiOriginTranslator * scaleMatrix * rotationMatrix * translationMatrix * originTranslator;
         vec3 pos3D = transformMat  * vec3(position, 1.0);
         gl_Position = vec4(pos3D, 1.0);
@@ -58,13 +44,8 @@ const vertexShaderSrc = `
 const fragmentShaderSrc = `
     precision mediump float;
     uniform vec3 color;
-    uniform float gradient;
-    uniform int shouldColorShift;
-    float intensity = 1.0;
     void main() {
-        if(shouldColorShift == 1)
-            intensity = (sin(gradient) + 1.0)/2.0;
-        gl_FragColor = vec4(color * intensity, 1.0);
+        gl_FragColor = vec4(color, 1.0);
     }
 `;
 
@@ -420,4 +401,3 @@ document.getElementById("moonOrbitClockwise").onchange = function () {
     clockwiseMoonOrbit = event.srcElement.checked;
     orbitSpeedMoon = (clockwiseMoonOrbit ? -1 : 1) * Math.abs(orbitSpeedMoon);
 };
-
