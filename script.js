@@ -162,7 +162,7 @@ function drawScene() {
     // Earth's position relative to the Sun
     const earthOrbitRadius = 0.5;
     const earthOrbitSpeed = 0.02;
-    const earthRotationSpeed = 0.1;
+    const earthRotationSpeed = 0.01;
 
     // Update Earth's rotation matrix
     earthRotationMatrix = mul([
@@ -191,7 +191,7 @@ function drawScene() {
     ];
 
     // Combine Earth's transformations
-    const earthTransformMatrix = mul(earthRotationMatrix, earthTranslationMatrix);
+    const earthTransformMatrix = mul(earthRotationMatrix, (mul(earthTranslationMatrix, earthRotationMatrix)));
 
     // Draw Earth
     gl.uniformMatrix3fv(rotationMatrixLoc, false, earthTransformMatrix);
