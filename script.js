@@ -243,6 +243,15 @@ let rotationAngleMoonAroundEarth = 0;
 let shouldSwing = 0;
 let shouldColorShift = 0;
 
+let rotateOwnCenterSunSpeed = 0.01;
+let rotateOwnCenterEarthSpeed = 0.03;
+let rotateOwnCenterMoonSpeed = 0.05;
+let orbitSpeedEarth = 0.01;
+let orbitSpeedMoon = 0.04;
+let scaleSunAmount = 1.0;
+let scaleEarthAmount = 0.65;
+let scaleMoonAmount = 0.3;
+
 //DRAW LOOP
 drawScene();
 function drawScene()
@@ -289,11 +298,14 @@ function drawScene()
 
     requestAnimationFrame(drawScene);
 
-    rotateOwnCenterSun(0.01);
-    rotateOwnCenterEarth(0.03);
-    rotateOwnCenterMoon(0.05);
-    rotateAroundSunEarth(0.01);
-    rotateAroundEarthMoon(0.04);
+    rotateOwnCenterSun(rotateOwnCenterSunSpeed);
+    rotateOwnCenterEarth(rotateOwnCenterEarthSpeed);
+    rotateOwnCenterMoon(rotateOwnCenterMoonSpeed);
+    rotateAroundSunEarth(orbitSpeedEarth);
+    rotateAroundEarthMoon(orbitSpeedMoon);
+    scaleSun(scaleSunAmount);
+    scaleEarth(scaleEarthAmount);
+    scaleMoon(scaleMoonAmount);
 }
 
 
@@ -401,4 +413,59 @@ function rotateAroundEarthMoon(x) {
     // Update the center position of the Moon
     centerPosMoon = [translationMatrixMoon[2], translationMatrixMoon[5], 0.0];
 }
+
+function scaleSun(x){
+    scaleMatrix1 = [
+        x, 0.0, 0.0,
+        0.0, x, 0.0,
+        0.0, 0.0, 1.0
+    ];
+}
+
+function scaleEarth(x){
+    scaleMatrix2 = [
+        x, 0.0, 0.0,
+        0.0, x, 0.0,
+        0.0, 0.0, 1.0
+    ];
+}
+
+function scaleMoon(x){
+    scaleMatrix3 = [
+        x, 0.0, 0.0,
+        0.0, x, 0.0,
+        0.0, 0.0, 1.0
+    ];
+}
+
+//Slider Controls
+document.getElementById("scaleSun").onchange = function() {
+    scaleSunAmount = event.srcElement.value/1.0;
+};
+document.getElementById("rotationSpeedSun").onchange = function() {
+    rotateOwnCenterSunSpeed = event.srcElement.value/1.0;
+};
+document.getElementById("scaleEarth").onchange = function() {
+    scaleEarthAmount = event.srcElement.value/1.0;
+};
+document.getElementById("rotationSpeedEarth").onchange = function() {
+    rotateOwnCenterEarthSpeed= event.srcElement.value/1.0;
+};
+document.getElementById("scaleMoon").onchange = function() {
+    scaleMoonAmount = event.srcElement.value/1.0;
+};
+document.getElementById("rotationSpeedMoon").onchange = function() {
+    rotateOwnCenterMoonSpeed = event.srcElement.value/1.0;
+};
+document.getElementById("earthOrbitSpeed").onchange = function() {
+    orbitSpeedEarth = event.srcElement.value/1.0;
+};
+document.getElementById("moonOrbitSpeed").onchange = function() {
+    orbitSpeedMoon = event.srcElement.value/1.0;
+};
+
+//Checkbox Controls
+document.getElementById("clockwiseSun").onchange = function() {
+    shouldSwing = event.srcElement.checked;
+};
 
