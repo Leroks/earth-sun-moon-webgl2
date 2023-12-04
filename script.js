@@ -106,8 +106,16 @@ const earthVertices = [
     { x: 0.0, y: 0.1 }
 ];
 
+// Add Moon vertices
+const moonVertices = [
+    { x: -0.03, y: -0.03 },
+    { x: 0.03, y: -0.03 },
+    { x: 0.0, y: 0.06 }
+];
+
 const sunVerticesFinal = sunVertices.map(obj => [obj.x, obj.y]).flat();
 const earthVerticesFinal = earthVertices.map(obj => [obj.x, obj.y]).flat();
+const moonVerticesFinal = moonVertices.map(obj => [obj.x, obj.y]).flat();
 
 // Create vertex buffers
 const sunVertexBuffer = gl.createBuffer();
@@ -117,6 +125,11 @@ gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sunVerticesFinal), gl.STATIC_DRA
 const earthVertexBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, earthVertexBuffer);
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(earthVerticesFinal), gl.STATIC_DRAW);
+
+// Create Moon vertex buffer
+const moonVertexBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, moonVertexBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(moonVerticesFinal), gl.STATIC_DRAW);
 
 // Set up rotation matrices
 let sunRotationMatrix = [
@@ -131,14 +144,25 @@ let earthRotationMatrix = [
     0.0, 0.0, 1.0
 ];
 
+// Set up rotation matrix for Moon
+let moonRotationMatrix = [
+    1.0, 0.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 0.0, 1.0
+];
+
 // Set up uniform locations
 const rotationMatrixLoc = gl.getUniformLocation(program, 'rotationMatrix');
 const sunColorLoc = gl.getUniformLocation(program, 'color');
 const earthColorLoc = gl.getUniformLocation(program, 'color');
+// Set up uniform location for Moon
+const moonColorLoc = gl.getUniformLocation(program, 'color');
 
 // Set up colors
 const sunColor = [1.0, 1.0, 0.0]; // Yellow
 const earthColor = [0.529, 0.808, 0.922]; // Light Blue
+// Set up color for Moon
+const moonColor = [0.663, 0.663, 0.663]; // Gray
 
 gl.useProgram(program);
 
@@ -214,6 +238,46 @@ function drawScene() {
         0.0,
         1.0
     ], sunRotationMatrix);
+
+    // Update Moon's rotation matrix
+    moonRotationMatrix = mul([
+        Math.cos(0.02),
+        -Math.sin(0.02),
+        0.0,
+        Math.sin(0.02),
+        Math.cos(0.02),
+        0.0,
+        0.0,
+        0.0,
+        1.0
+    ], moonRotationMatrix);
+
+    // Update Moon's position in the orbit around Earth
+    const moonOrbitRadius = 0.0001;
+    const moonOrbitSpeed = 0.0005;
+
+    const moonOrbitPosition = {
+        x: earthOrbitPosition.x,
+        y: earthOrbitPosition.y
+    };
+
+    const moonTranslationMatrix = [
+        1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        moonOrbitPosition.x, moonOrbitPosition.y, 1.0
+    ];
+
+    // Combine Moon's transformations
+    const moonTransformMatrix = mul(moonRotationMatrix, mul(moonTranslationMatrix, earthTransformMatrix));
+
+    // Draw Moon
+    gl.uniformMatrix3fv(rotationMatrixLoc, false, moonTransformMatrix);
+    gl.uniform3fv(moonColorLoc, moonColor);
+    gl.bindBuffer(gl.ARRAY_BUFFER, moonVertexBuffer);
+    const positionMoon = gl.getAttribLocation(program, 'position');
+    gl.enableVertexAttribArray(positionMoon);
+    gl.vertexAttribPointer(positionMoon, 2, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, moonVertices.length);
 
     // Request the next frame
     requestAnimationFrame(drawScene);
